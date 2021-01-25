@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Понг на JS</title>
+        <style>
+            canvas { background: #000000; display: block; margin: 0 auto; }
+        </style>
+</head>
+<body>
+
+<canvas id="Canvas" width="640" height="480"></canvas>
+
+<script>
+
+var canvas = document.getElementById("Canvas");//Инициализирую canvas
+var ctx = canvas.getContext("2d");//Инициализирую контекст графики 2D
+var cell = canvas.width/64; // Получаю клетку игрового поля в пикселях (тут она будет 10px)
+
+/*Переменные мяча*/
+var ballRadius = cell;//радиус мяча
+var x = canvas.width/2;//положение мяча по оси x
+var y = canvas.height-cell*9;//положение по оси y
+
+var dx = cell/5;// Функция движения. Показывает насколько смешается мяч после каждой отрисовки. О
+var dy = -cell/5;
+
+/*Переменные игрока*/
+var playerHeight = cell;//высота игрока
+var playerWidth = cell*20;//ширина игрока
+var playerX = (canvas.width-playerWidth)/2;//Положение игрока по оси х
+
+/*переменные врага*/
+var enemyHeight = cell;
+var enemyWidth = cell*30;
+var enemyX = (canvas.width-playerWidth)/2;
+var enemyY = enemyHeight*2;
+var ex = 3;//скорость врага
+
+/*переменные булевые нажатия клавиш*/
+var rightPressed = false;
+var leftPressed = false;
+
+var score = 0 // очки добавили
+var lives = 3// Жизни добавили
+
+/* Для прослушки клавиш*/ 
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+document.addEventListener("mousemove", mouseMoveHandler, false);// Прослушка мыши
+
+function keyDownHandler(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+        rightPressed = true;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+        leftPressed = true;
+    }
+}
+
+function keyUpHandler(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+        rightPressed = false;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+        leftPressed = false;
+    }
+}
+
+function mouseMoveHandler(e) {
+    var relativeX = e.clientX - canvas.offsetLeft;
+    if(relativeX > 0 && relativeX < canvas.width) {
+    playerX = relativeX - playerWidth/2;
+    }
+}
+/*функции отрисовки*/
+function Ball() {
+    ctx.beginPath();
+    ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+    ctx.fillStyle = "#ff0000";
+    ctx.fill();
+    ctx.closePath();
+}
+
+function Player() {
+    ctx.beginPath();
+    ctx.rect(playerX, canvas.height-playerHeight, playerWidth, playerHeight);
+    ctx.fillStyle = "#ff0000";
+    ctx.fill();
+    ctx.closePath();
+}
+
+function Enemy() {
+    ctx.beginPath();
+    ctx.rect(enemyX, enemyY, enemyWidth, enemyHeight);
+    ctx.fillStyle = "#4d54a8";
+    ctx.fill();
+    ctx.closePath();
+}
+
+
+function Score() {
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Очки: "+score, cell, cell*2);
+}
+
+function Lives() {
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Жизни: "+lives, canvas.width-cell*7, cell*2);
+}
+
+/*Главная функция отрисовки игры*/
+function Pong() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    Ball();
+    Player();
+    Enemy();
+    Score();
+    Lives();
+    
+    // Условия чтобы мяч отскакивал от стены. Если положение мяча больше чем холст по ширине минус радиус мяча либо положение меньше чем начальное по ширине функция вх меняется на минут ну и также по оси У условие ставится
+    
+    if(enemyX + ex > canvas.width-enemyWidth || enemyX + ex < 0) {
+        ex = -ex
+    }
+
+    if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+        dx = -dx;
+    }
+    if(y<-12) {// условия что игра начинается с того же момента, что и начиналась после падения жизни 
+        x = canvas.width/2;
+        y = canvas.height-cell*3;
+        playerX = (canvas.width-playerWidth)/2;
+        score++;
+      }
+
+    if (y + dy < enemyY+10) {
+        if(x > enemyX && x < enemyX + enemyWidth) {
+         dy = -dy;
+         score--;
+         }
+        } 
+    
+    // ну и если залетает дальше канваса вниз то сообщение гейм овер и то чтобы отталкивался от игрока. Сначала ставится условие что по У мячик залетает ниже и второе условие если Х (центр шара) находится междц краями игрока, то меняется напрвавление
+    else if(y + dy > canvas.height-ballRadius) {
+        if(x > playerX && x < playerX + playerWidth) {
+            dy = -dy;
+            score++;
+            }            
+    else if(y - dy < ballRadius) {
+        if(x > enemyX && x < enemyX + enemyWidth) {
+            dy = -dy;
+            score--;
+           }          
+            
+        }
+                
+    else {// условие если жизни закончились наступает пизда мчуконец
+      lives--;
+      if(!lives) {
+        alert("Вы проиграли!");
+        document.location.reload();
+      }
+      else {// условия что игра начинается с того же момента, что и начиналась после падения жизни
+        x = canvas.width/2;
+        y = canvas.height-cell*3;
+       
+        playerX = (canvas.width-playerWidth)/2;
+      }
+    }
+  }
+
+    // Движение игрока
+    if(rightPressed && playerX < canvas.width-playerWidth) {
+        playerX += 7;
+    }
+    else if(leftPressed && playerX > 0) {
+        playerX -= 7;
+    }
+    if(score > 21) {// условие что если более трех то выиграл
+        alert("ВЫИГРЫШ");
+        document.location.reload();
+        clearInterval(interval); // Нужен для Chrome 
+    }
+
+    // Это показывает куда двигается все
+    x += dx;
+    y += dy;
+    enemyX+=ex;   
+}
+
+var interval = setInterval(Pong, 6);
+
+</script>
+
+</body>
+</html>
